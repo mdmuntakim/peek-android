@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Peek" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/peek_bg</item>
+    </style>
+
+    <style name="Theme.Peek.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/peek_lagoon</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_icon</item>
+        <item name="postSplashScreenTheme">@style/Theme.Peek</item>
+    </style>
+</resources>

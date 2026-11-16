@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="peek_lagoon">#0E7268</color>
+    <color name="peek_lagoon_deep">#06332E</color>
+    <color name="peek_lagoon_bright">#61D9C3</color>
+    <color name="peek_bg">#F5FAF8</color>
+</resources>
