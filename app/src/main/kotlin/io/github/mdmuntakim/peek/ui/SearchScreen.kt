@@ -50,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import io.github.mdmuntakim.peek.PeekBus
+import io.github.mdmuntakim.peek.openExternally
 import io.github.mdmuntakim.peek.PeekEvent
 import io.github.mdmuntakim.peek.R
 import io.github.mdmuntakim.peek.engine.Crawler
@@ -148,7 +149,7 @@ fun SearchScreen(
             SuggestionsPane(
                 suggestions = suggestions,
                 onPickQuery = { runSearch(it) },
-                onPickPage = { PeekBus.openUrl(it) },
+                onPickPage = { openExternally(it) },
             )
         } else {
             Box(Modifier.fillMaxSize().padding(top = 12.dp)) {
@@ -160,7 +161,7 @@ fun SearchScreen(
                     is SearchState.Failed -> ErrorPane(s.message) { runSearch(s.query) }
                     is SearchState.Done -> Results(
                         payload = s.payload,
-                        onOpen = { url -> PeekBus.openUrl(url) },
+                        onOpen = { url -> openExternally(url) },
                         onSearch = { q -> runSearch(q) },
                     )
                 }

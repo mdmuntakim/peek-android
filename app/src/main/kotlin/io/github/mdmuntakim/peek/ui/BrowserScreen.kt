@@ -6,6 +6,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -84,6 +85,10 @@ fun BrowserScreen(
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.userAgentString = io.github.mdmuntakim.peek.engine.Http.UA
+            settings.allowContentAccess = true
+            settings.allowFileAccess = true
+            settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+            setBackgroundColor(android.graphics.Color.TRANSPARENT)
             webChromeClient = object : android.webkit.WebChromeClient() {
                 override fun onProgressChanged(view: WebView, newProgress: Int) {
                     progress = newProgress / 100f
@@ -268,7 +273,7 @@ fun BrowserScreen(
             }
         }
 
-        Box(Modifier.weight(1f)) {
+        Box(Modifier.weight(1f).background(MaterialTheme.colorScheme.background)) {
             AndroidView(factory = { webView }, modifier = Modifier.fillMaxSize()) {}
         }
     }

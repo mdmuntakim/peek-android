@@ -44,6 +44,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import io.github.mdmuntakim.peek.PeekBus
+import io.github.mdmuntakim.peek.openExternally
 import io.github.mdmuntakim.peek.R
 import io.github.mdmuntakim.peek.engine.ImageResult
 import io.github.mdmuntakim.peek.engine.Index
@@ -154,7 +155,7 @@ fun ImagesScreen(padding: PaddingValues) {
                 items(s.results, key = { it.image }) { img ->
                     Surface(
                         shape = RoundedCornerShape(16.dp),
-                        onClick = { PeekBus.openUrl(img.url) },
+                        onClick = { openExternally(img.url) },
                         modifier = Modifier.aspectRatio(1f),
                     ) {
                         AsyncImage(

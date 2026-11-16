@@ -94,7 +94,7 @@ object Search {
      * Kick off a background PeekBot crawl from the seed ring (never blocks
      * the search). The UI surfaces progress in the status chip.
      */
-    fun growInBackground(budget: Int = 24) {
+    fun growInBackground(budget: Int = 96) {
         if (Crawler.running) return
         bg.launch {
             lastCrawl = Crawler.crawl(Store.seedsList(), budget) { lastCrawl = it }
