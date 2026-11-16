@@ -12,17 +12,27 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
+import io.github.mdmuntakim.peek.PeekBus
+import io.github.mdmuntakim.peek.PeekEvent
 import io.github.mdmuntakim.peek.R
 import io.github.mdmuntakim.peek.ui.theme.PeekTheme
 import io.github.mdmuntakim.peek.ui.theme.ThemeMode
 import io.github.mdmuntakim.peek.ui.theme.ThemeStore
+
+private data class Tab(val icon: Int, val label: String)
+
+private val TABS = listOf(
+    Tab(R.drawable.ic_tab_search, "Search"),
+    Tab(R.drawable.ic_tab_browser, "Browser"),
+    Tab(R.drawable.ic_tab_images, "Images"),
+    Tab(R.drawable.ic_tab_settings, "Settings"),
+)
 
 @Composable
 fun PeekApp(initialQuery: String? = null) {
@@ -30,43 +40,59 @@ fun PeekApp(initialQuery: String? = null) {
     var mode by rememberSaveable { mutableStateOf<ThemeMode>(ThemeMode.SYSTEM) }
     LaunchedEffect(Unit) {
         mode = ThemeStore.load(context)
+        initialQuery?.let { PeekBus.submitQuery(it) }
     }
-    var initial by rememberSaveable { mutableStateOf(initialQuery) }
 
     PeekTheme(mode = mode) {
         var tab by rememberSaveable { mutableStateOf(0) }
+        var searchReq by rememberBusState<PeekEvent.Search>()
+        var openReq by rememberBusState<PeekEvent.Open>()
+
+        // Single owner of the bus: search requests route to the Search tab,
+        // open requests to the built-in Browser.
+        LaunchedEffect(Unit) {
+            while (true) {
+                when (val e = PeekBus.poll()) {
+                    null -> break
+                    is PeekEvent.Search -> {
+                        tab = 0
+                        searchReq = e
+                    }
+                    is PeekEvent.Open -> {
+                        tab = 1
+                        openReq = e
+                    }
+                    PeekEvent.SwitchBrowser -> tab = 1
+                }
+            }
+        }
 
         Scaffold(
             bottomBar = {
                 NavigationBar {
-                    NavigationBarItem(
-                        selected = tab == 0,
-                        onClick = { tab = 0 },
-                        icon = { TabIcon(R.drawable.ic_tab_search, "Search") },
-                        label = { Text("Search") },
-                    )
-                    NavigationBarItem(
-                        selected = tab == 1,
-                        onClick = { tab = 1 },
-                        icon = { TabIcon(R.drawable.ic_tab_images, "Images") },
-                        label = { Text("Images") },
-                    )
-                    NavigationBarItem(
-                        selected = tab == 2,
-                        onClick = { tab = 2 },
-                        icon = { TabIcon(R.drawable.ic_tab_settings, "Settings") },
-                        label = { Text("Settings") },
-                    )
+                    TABS.forEachIndexed { i, t ->
+                        NavigationBarItem(
+                            selected = tab == i,
+                            onClick = { tab = i },
+                            icon = { TabIcon(t.icon, t.label) },
+                            label = { Text(t.label) },
+                        )
+                    }
                 }
             },
         ) { padding ->
             when (tab) {
                 0 -> SearchScreen(
                     padding = padding,
-                    initialQuery = initial,
-                    onConsumeInitialQuery = { initial = null },
+                    searchRequest = searchReq,
+                    onConsumeSearchRequest = { searchReq = null },
                 )
-                1 -> ImagesScreen(padding)
+                1 -> BrowserScreen(
+                    padding = padding,
+                    openRequest = openReq,
+                    onConsumeOpenRequest = { openReq = null },
+                )
+                2 -> ImagesScreen(padding)
                 else -> SettingsScreen(
                     padding = padding,
                     mode = mode,
@@ -78,6 +104,15 @@ fun PeekApp(initialQuery: String? = null) {
             }
         }
     }
+}
+
+/**
+ * remember holder for bus events, keyed by type. Events are transient:
+ * screens consume the request right after receiving it.
+ */
+@Composable
+private inline fun <reified T> rememberBusState(): androidx.compose.runtime.MutableState<T?> {
+    return remember { mutableStateOf<T?>(null) }
 }
 
 @Composable

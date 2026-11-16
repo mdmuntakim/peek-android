@@ -38,15 +38,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import io.github.mdmuntakim.peek.engine.ImageResult
-import io.github.mdmuntakim.peek.engine.Images
+import io.github.mdmuntakim.peek.PeekBus
 import io.github.mdmuntakim.peek.R
-import io.github.mdmuntakim.peek.openUrl
-import androidx.compose.ui.res.painterResource
+import io.github.mdmuntakim.peek.engine.ImageResult
+import io.github.mdmuntakim.peek.engine.Index
+import io.github.mdmuntakim.peek.engine.Store
 import kotlinx.coroutines.launch
 
 sealed interface ImagesState {
@@ -70,7 +71,7 @@ fun ImagesScreen(padding: PaddingValues) {
         keyboard?.hide()
         state = ImagesState.Loading
         scope.launch {
-            val results = Images.imageSearch(clean)
+            val results = Store.imageSearch(clean)
             state = if (results.isEmpty()) ImagesState.Empty else ImagesState.Done(results)
         }
     }
@@ -86,7 +87,7 @@ fun ImagesScreen(padding: PaddingValues) {
             value = query,
             onValueChange = { query = it },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Search images…") },
+            placeholder = { Text("Pictures in your index…") },
             leadingIcon = { Icon(painter = painterResource(R.drawable.ic_tab_search), contentDescription = null) },
             trailingIcon = {
                 if (query.isNotEmpty()) {
@@ -116,14 +117,16 @@ fun ImagesScreen(padding: PaddingValues) {
                 PeekMark(modifier = Modifier.size(width = 72.dp, height = 46.dp))
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    "Image search",
+                    "Image gallery of your index",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    "Type above and press search.",
+                    "PeekBot collects every picture it reads while crawling.\n" +
+                        "Browse or crawl more to grow the gallery.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 6.dp),
                 )
             }
             is ImagesState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -134,9 +137,9 @@ fun ImagesScreen(padding: PaddingValues) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                Text("No images found", style = MaterialTheme.typography.titleMedium)
+                Text("No images match", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "The provider may be throttled. Try again shortly.",
+                    "The gallery only holds pictures from pages PeekBot has read.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -148,10 +151,10 @@ fun ImagesScreen(padding: PaddingValues) {
                 contentPadding = PaddingValues(vertical = 12.dp),
                 modifier = Modifier.fillMaxSize(),
             ) {
-                items(s.results) { img ->
+                items(s.results, key = { it.image }) { img ->
                     Surface(
                         shape = RoundedCornerShape(16.dp),
-                        onClick = { openUrl(img.url) },
+                        onClick = { PeekBus.openUrl(img.url) },
                         modifier = Modifier.aspectRatio(1f),
                     ) {
                         AsyncImage(

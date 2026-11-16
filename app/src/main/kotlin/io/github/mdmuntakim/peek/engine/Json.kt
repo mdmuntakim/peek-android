@@ -18,6 +18,24 @@ object Json {
     fun str(value: Any?): String? = value as? String
     fun num(value: Any?): Double? = value as? Double ?: (value as? Long)?.toDouble() ?: (value as? Int)?.toDouble()
 
+    /** Minimal JSON string escaper for the snapshot writer in Store. */
+    fun escape(s: String): String {
+        val out = StringBuilder(s.length + 16)
+        for (c in s) {
+            when (c) {
+                '\\' -> out.append("\\\\")
+                '"' -> out.append("\\\"")
+                '\n' -> out.append("\\n")
+                '\r' -> out.append("\\r")
+                '\t' -> out.append("\\t")
+                '\b' -> out.append("\\b")
+                '\u000C' -> out.append("\\u000c")
+                else -> if (c < ' ') out.append("\\u%04x".format(c.code)) else out.append(c)
+            }
+        }
+        return out.toString()
+    }
+
     private class Parser(private val s: String) {
         private var i = 0
 

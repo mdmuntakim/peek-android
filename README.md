@@ -1,43 +1,61 @@
 # Peek for Android
 
-**Peek** is a professional search app for Android (arm64): every query gets a
-synthesized **Peek AI** answer paragraph on top of ranked web results, a
-Wikipedia knowledge panel, instant answers, related-search chips and an image
-search tab — all key-free, straight from public endpoints.
+**Peek** is a search engine that lives entirely inside its own Android app
+(arm64). It has its own crawler (**PeekBot**), its own inverted index with
+BM25 ranking, its own answer synthesizer (**Peek AI**) and its own built-in
+browser — and it never contacts any third-party search engine. No Google, no
+Bing, no DuckDuckGo, no wrapper around someone else's API.
 
-The search engine is a faithful native Kotlin port of the
-[Peek engine](https://github.com/mdmuntakim/peek) (`lib/*.js`):
+## The engine is Peek's own
 
-| Node original        | Android port                                        |
-| -------------------- | --------------------------------------------------- |
-| `lib/search.js`      | `engine/Search.kt` (DDG HTML + lite parsing, IA, Wikipedia, suggestions) |
-| `lib/rank.js`        | `engine/Rank.kt` (BM25-flavoured scorer, authority boost) |
-| `lib/answer.js`      | `engine/Answer.kt` (intent-aware extractive synthesis) |
-| `lib/images.js`      | `engine/Images.kt` (vqd token + image grid)         |
-| `lib/util.js`        | `engine/Text.kt`, `engine/Http.kt`, `engine/Json.kt` |
+Every stage of the pipeline runs on-device, in this repository:
 
-Zero third-party engine dependencies: the JSON parser, HTTP layer and DuckDuckGo
-scheduler are all in-tree, so the pipeline is testable on the plain JVM.
+| Stage        | Source                       | What it does                                                       |
+| ------------ | ---------------------------- | ------------------------------------------------------------------ |
+| Crawler      | `engine/Crawler.kt`          | Breadth-first crawl from the seed ring; robots.txt-aware, polite per-host delays, page-size caps |
+| Reader       | `engine/HtmlDoc.kt`          | Extracts title, headings, readable text, links and images from fetched pages |
+| Index        | `engine/Index.kt`            | Inverted index with field-weighted term frequencies + BM25 scorer, query language (`site:`, `-term`, `"phrase"`) |
+| Ranker       | `engine/Rank.kt`             | De-duplication and authority nudges on top of BM25 scores          |
+| Answers      | `engine/Answer.kt`           | Deterministic extractive synthesis — the "Peek AI" paragraph with sources |
+| Storage      | `engine/Store.kt`            | JSON snapshot persistence (atomic write), history, bookmarks, seeds, image gallery |
+| Browser      | `ui/BrowserScreen.kt`        | In-app WebView browser; pages you read are indexed ("browse to build your engine") |
+
+The index is the only universe Peek searches. When a query finds nothing,
+Peek says so honestly and grows the index in the background from the seed
+ring instead of quietly asking another engine.
 
 ## UI
 
-- **Material 3** (Jetpack Compose) — search field with live suggestions, Peek AI
-  answer card, knowledge panel, result cards, image grid, bottom navigation,
-  skeletons while providers answer.
-- **Original theme** — the "Lagoon" palette (deep lagoon teal, burnt amber,
-  plum) with light/dark/system modes; not derived from any other brand.
-- **Original logo** — the "Lagoon aperture eye": a vesica eye inside a dashed
-  lens ring with an offset pupil. Also used as the adaptive launcher icon
-  (with Android 13 monochrome theming) and the splash mark.
-- Splash screen via `core-splashscreen`, edge-to-edge layout.
+- **Material 3** (Jetpack Compose) — Search, Browser, Images and Settings tabs.
+- **"Abyss" palette** — deep-sea ink, signal teal, beacon amber and dusk
+  violet, with an aurora-gradient hero on the home screen; light/dark/system
+  modes. Not derived from any other brand.
+- **Original logo** — the "Peek aperture eye": a vesica eye inside a
+  four-segment aperture ring with an offset pupil. Used as the in-app mark,
+  the adaptive launcher icon and the splash.
+- Live index status chip, highlighted snippets, related-search chips,
+  knowledge panel from the index, skeleton loading states.
+
+## Features
+
+- Full-text search of the crawled corpus with BM25 ranking and highlighted snippets
+- Peek AI answer paragraph with confidence and source chips
+- Knowledge panel for entity queries, built from the index
+- Query language: `site:example.org`, `-excluded`, `"exact phrase"`
+- Suggestions from your own search history and indexed page titles
+- Related searches mined from the index's salient terms
+- Image gallery collected by PeekBot while crawling
+- Built-in browser with back/forward, bookmarks and one-tap "Index page"
+- Seed-ring manager, crawl budget (12/24/48/96 pages), crawl progress and cancel
+- History, bookmarks, theme modes, `peek://search?q=` deep links
 
 ## Build
 
-Requirements: JDK 17+, Android SDK (platform 36, build-tools).
+Requirements: JDK 17+, Android SDK (platform 37, build-tools).
 
 ```bash
-gradle :app:assembleRelease      # app/build/outputs/apk/release/app-arm64-release.apk
-gradle :app:testDebugUnitTest    # JVM unit tests of the engine
+gradle :app:assembleRelease      # app/build/outputs/apk/release/app-arm64-v8a-release.apk
+gradle :app:testDebugUnitTest    # 32 JVM unit tests of the engine
 ```
 
 The release build is an **arm64-v8a** APK, signed with the in-tree release
@@ -45,12 +63,13 @@ key (`app/peek-release.keystore`, store/key password `peek-android`, alias
 `peek`). The key is public on purpose so anyone can reproduce the signed
 build; do **not** use it to sign anything else.
 
-## Engine endpoints (all key-free)
+## Honest limitations
 
-- DuckDuckGo HTML / lite results
-- DuckDuckGo Instant Answer API
-- Wikipedia search + summary API
-- DuckDuckGo suggestions and image search
+A one-app crawler cannot index the whole web. Peek's results are only as
+broad as what PeekBot has crawled and what you browsed; the Settings tab
+shows exactly how large your universe is (pages, sites, terms). That is the
+trade of a search engine that is truly yours — private, transparent and
+independent, at personal scale.
 
 ## License
 

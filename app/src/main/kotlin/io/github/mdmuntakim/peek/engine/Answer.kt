@@ -78,24 +78,13 @@ object Answer {
     }
 
     /**
-     * synthesizeAnswer(query, rankedResults, instant) -> [PeekAnswer]
+     * synthesizeAnswer(query, rankedResults) -> [PeekAnswer]
      */
-    fun synthesizeAnswer(query: String, rankedResults: List<WebResult>, instant: InstantAnswer?): PeekAnswer {
+    fun synthesizeAnswer(query: String, rankedResults: List<WebResult>): PeekAnswer {
         val intent = classifyIntent(query)
         val terms = Text.keyTerms(query)
 
-        // 1) A real abstract from the instant-answer provider beats everything.
-        if (instant != null && instant.abstract.length >= 80) {
-            val src = if (instant.abstractURL.isNotEmpty()) AnswerSource(
-                title = if (instant.abstractSource.isNotEmpty()) instant.abstractSource
-                else if (instant.heading.isNotEmpty()) instant.heading else "Knowledge source",
-                url = instant.abstractURL,
-                domain = Text.domainOf(instant.abstractURL),
-            ) else null
-            return PeekAnswer("instant", intent, instant.abstract, 0.95, listOfNotNull(src))
-        }
-
-        // 2) Extract candidate sentences from the top results' snippets.
+        // Extract candidate sentences from the top results' snippets.
         val cands = ArrayList<Candidate>()
         for (r in rankedResults.take(12)) {
             if (r.snippet.isEmpty()) continue
